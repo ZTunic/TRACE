@@ -63,10 +63,10 @@ function RepositoryInfo({ repo, dispersion, chartData, alert, readme }) {
 				<Typography>
 					WebSite:{' '}
 					{(repo.homepage && (
-						<a href={repo.homepage} target="_blank">
-							{repo.homepage}
-						</a>
-					)) ||
+							<a href={repo.homepage} target="_blank">
+								{repo.homepage}
+							</a>
+						)) ||
 						'N/A'}{' '}
 				</Typography>
 				<Card sx={{ mt: 4 }}>
@@ -86,6 +86,28 @@ function RepositoryInfo({ repo, dispersion, chartData, alert, readme }) {
 							Percent Dispersion:{' '}
 							{dispersion?.percentCultDisp.toFixed(2)} %
 						</Typography>
+						<Typography>
+							Hofstede Cultural Dispersion:
+						</Typography>
+						<Typography>
+							Power Distance Index: {dispersion?.hofstedeDispersion.pdi_std || 'N/A'}
+						</Typography>
+						<Typography>
+							Individualism VS Collectivism: {dispersion?.hofstedeDispersion.idv_std || 'N/A'}
+						</Typography>
+						<Typography>
+							Masculinity VS Femininity: {dispersion?.hofstedeDispersion.mas_std || 'N/A'}
+						</Typography>
+						<Typography>
+							Uncertainty Avoidance: {dispersion?.hofstedeDispersion.uai_std || 'N/A'}
+						</Typography>
+						<Typography>
+							Long VS Short Term Orientation: {dispersion?.hofstedeDispersion.lto_std || 'N/A'}
+						</Typography>
+						<Typography>
+							Indulgence VS Restraint: {dispersion?.hofstedeDispersion.ivr_std || 'N/A'}
+						</Typography>
+
 						{chartData && (
 							<Chart
 								chartType="PieChart"
