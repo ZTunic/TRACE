@@ -33,9 +33,12 @@ for div in countries_div:
     country_dimensions = {}
     for element in div.find_all("span")[:6]:
         dim_name = element.get("class")[0]
-        dim_value = element.text.strip()
+        if element.text.strip() == "":
+            dim_value = None
+        else:
+            dim_value = int(element.text.strip())
         country_dimensions[DIM_NAMES_CONVERSIONS[dim_name]] = dim_value
-    countries_dimensions[country] = country_dimensions
+        countries_dimensions[country] = country_dimensions
 
 # Creo il file JSON con all'interno tutti i paesi analizzati e i rispettivi valori delle dimensioni di Hofstede.
 with open('hofstede.json', 'w', encoding='utf-8') as file:
