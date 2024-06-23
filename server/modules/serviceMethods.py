@@ -2,12 +2,15 @@ import requests
 from flask import jsonify
 import json
 import math
+import pycountry
+import numpy as np
 
 from modules.cvToCountry import predictFromCV
 from modules.locationToCountry import predictFromLocation
 from modules.usernameToCountry import predictFromUsername
 from modules.commitsToCountry import predictFromCommits
 from modules.nameToCountry import predictFromName
+from modules.hofstedeDispersion import getHofstedeCulturalDispersion
 
 # WEIGHT of prediction for final resul, from 0.1 to 0.5
 WEIGHT_NAME = 0.25
@@ -345,12 +348,14 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
         },
         'alert': alert
     }
+    hofstedeCulturalDispersion = getHofstedeCulturalDispersion(contributorsObj, "./hofstede.json", owner, repo)
 
     print('\n#################################')
     print(f'Prediction for Contributors: {culturalDispersion}')
     print(f'Shannon Index: {shannon["index"]}')
     print(f'Cultural Dispersion Percent: {shannon["percent"]}')
     print(f'Alert N/A Noise: {alert}')
+    print(f'Hofstede Cultural Dispersion: {hofstedeCulturalDispersion}')
     print('#################################\n')
     try:
         # print('contributorsObj:', contributorsObj)
@@ -478,3 +483,4 @@ def shannonIndex(culturalDispersion):
         'index':index,
         'percent': percent
     }
+
