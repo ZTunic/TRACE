@@ -1,11 +1,14 @@
+import time
+
 import requests
 from flask import jsonify
 import json
 import math
 import pycountry
 import numpy as np
+from datetime import date, datetime
 
-from modules.cvToCountry import predictFromCV
+# from modules.cvToCountry import predictFromCV
 from modules.locationToCountry import predictFromLocation
 from modules.usernameToCountry import predictFromUsername
 from modules.commitsToCountry import predictFromCommits
@@ -44,11 +47,11 @@ def getUserGIT(username, GITHUB_API_TOKEN):
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {GITHUB_API_TOKEN}"
         }
-    
+
     try:
         # Do GET request to GitHub API
         response = requests.get(url, headers=headers)
-        response.raise_for_status() 
+        response.raise_for_status()
         data = response.json()
         return data
     except requests.exceptions.RequestException as e:
@@ -76,7 +79,7 @@ def getRepoReadmeGIT(owner, repo, GITHUB_API_TOKEN):
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {GITHUB_API_TOKEN}"
         }
-    
+
     try:
         # Do GET request to GitHub API
         response = requests.get(url, headers=headers)
@@ -86,14 +89,14 @@ def getRepoReadmeGIT(owner, repo, GITHUB_API_TOKEN):
     except requests.exceptions.RequestException as e:
         # If an error occurred during the API call
         errorFullMessage = str(e.args[0]) if e.args else "Unknown error"
-        
+
         if " " in errorFullMessage:
             errorCode = errorFullMessage.split(" ")[0]
             errorMessage = " ".join(errorFullMessage.split(" ")[1:])
         else:
             errorCode = "Unknown"
             errorMessage = errorFullMessage
-        
+
         print(f"[GITHUB API] Error GitHub accessing repo info: {e}")
         return jsonify({
             "error": errorMessage,
@@ -113,7 +116,7 @@ def getRepoInfoGIT(owner, repo, GITHUB_API_TOKEN):
             "Accept": "application/vnd.github.v3+json",
             "Authorization": f"token {GITHUB_API_TOKEN}"
         }
-    
+
     try:
         # Do GET request to GitHub API
         response = requests.get(url, headers=headers)
@@ -123,28 +126,41 @@ def getRepoInfoGIT(owner, repo, GITHUB_API_TOKEN):
     except requests.exceptions.RequestException as e:
         # If an error occurred during the API call
         errorFullMessage = str(e.args[0]) if e.args else "Unknown error"
-        
+
         if " " in errorFullMessage:
             errorCode = errorFullMessage.split(" ")[0]
             errorMessage = " ".join(errorFullMessage.split(" ")[1:])
         else:
             errorCode = "Unknown"
             errorMessage = errorFullMessage
-        
+
         print(f"[GITHUB API] Error GitHub accessing repo info: {e}")
         return jsonify({
             "error": errorMessage,
             "status": errorCode
         }), 500
-    
+
 def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
     page = 1
     flag = True
+    minute_consecutive_requests = 0
     contributors = []
     culturalDispersion = {}
 
+    # Recupero le informazioni sulle richieste giornaliere dal file JSON.
+    with open("rpd_info.json", "r") as file:
+        rpd_info = json.load(file)
+
+    first_dr_date = rpd_info.get("first_dr_date", None)
+    day_consecutive_requests = rpd_info.get("requests_counter", 0)
+
+    if first_dr_date is None:
+        first_dr_date = date.today()
+    else:
+        first_dr_date = datetime.strptime(first_dr_date, "%Y-%m-%d").date()
+
     while flag == True:
-        
+
         url = f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page=100&page={page}"
         headers = {}
         if(GITHUB_API_TOKEN == ""):
@@ -162,18 +178,18 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
             response = requests.get(url, headers=headers)
             response.raise_for_status()
             data = response.json()
-        
+
         except requests.exceptions.RequestException as e:
             # If an error occured during api call
             errorFullMessage = e.args[0]
             errorCode = errorFullMessage.split(" ")[0]
             errorMessage = " ".join(errorFullMessage.split(" ")[1:])
-            
+
             print(f"[GITHUB API] Error GitHub accessing repo's contribur info: {e}")
             return jsonify({
                 "error": errorMessage,
                 "status": errorCode
-            }), errorCode        
+            }), errorCode
 
         # Find all contributors info
         count = 0
@@ -193,15 +209,45 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
                 #########################################
                 ############### MODULO CV ###############
                 #########################################
-                # Search CV in contributor's portfolio
-                url = user['blog']
-                pdfsPredict = predictFromCV(user['blog'], user['login'])
+
+                ### (Modulo disattivato) ###
+
+                # # Search CV in contributor's portfolio
+                # url = user['blog']
+                # pdfsPredict = predictFromCV(user['blog'], user['login'])
 
                 #########################################
                 ############ MODULO USERNAME ############
                 #########################################
                 username = user['login']
+
+                # Se è passato almeno 1 giorno dalla prima delle 120 richieste
+                if (date.today() - first_dr_date).days >= 1:
+                    day_consecutive_requests = 0
+                    first_dr_date = date.today()
+
+                # Controllo sul numero di richieste al giorno
+                if day_consecutive_requests == 120:
+                    print("Raggiunto il limite di richieste giornaliere.")
+                    break
+
+                if minute_consecutive_requests > 0:
+                    if time.time() - first_request_timestamp > 60:
+                        minute_consecutive_requests = 0
+
+                # Controllo sul numero di richieste al minuto.
+                if minute_consecutive_requests == 3:
+                    minute_consecutive_requests = 0
+                    wait_time = 120
+                    print("Raggiunto il limite massimo di richieste. Attendi", int(wait_time), "secondi.")
+                    time.sleep(wait_time)
+
+                if minute_consecutive_requests == 0:
+                    first_request_timestamp = time.time()
+
                 usernamePredict = predictFromUsername(username)
+                minute_consecutive_requests += 1
+                day_consecutive_requests += 1
 
                 # Check if response is dict and contains 'error' key
                 if usernamePredict is not None and isinstance(usernamePredict, dict) and 'error' in usernamePredict:
@@ -221,13 +267,13 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
 
                 if locationPredict is not None and (isinstance(locationPredict, dict) and 'error' in locationPredict):
                     locationPredict = None
-                
+
 
                 #########################################
                 ############# MODULO COMMIT #############
                 #########################################
-                # Search n commits of contributor and make prediction 
-                commitsPredict = predictFromCommits(user['login'], owner, repo, 3, GITHUB_API_TOKEN, GOOGLE_API_KEY)   
+                # Search n commits of contributor and make prediction
+                commitsPredict = predictFromCommits(user['login'], owner, repo, 3, GITHUB_API_TOKEN, GOOGLE_API_KEY)
 
                 if(isinstance(commitsPredict, dict) and 'error' in commitsPredict):
                     # If an error occured
@@ -240,7 +286,7 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
                 if(isinstance(namePredict, dict) and 'error' in namePredict):
                     # If an error occured
                     namePredict = None
-              
+
                 if(usernamePredict is not None):
                     try:
                         usernamePredictJson = json.loads(usernamePredict)
@@ -251,42 +297,42 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
                             usernameIso = usernamePredictJson['isoPredicted']
                     else:
                         usernameIso = None
-                    
+
                 else:
                     usernameIso = None
                     usernamePredictJson = None
 
-                
+
                 if(usernameIso is None or usernameIso.lower() == 'null' or len(usernameIso) > 2):
                     usernameIso = None
 
                 nameIso = namePredict
 
-
+                # (Modulo cvToCountry disattivato).
                 pdfsIso = None
-                try:
-                    if pdfsPredict is not None and len(pdfsPredict) != 0:
+                # try:
+                    # if pdfsPredict is not None and len(pdfsPredict) != 0:
                         # for isoPredicted of pdf: pdfsPredict[0]['isoPredicted']['isoPredicted']
-                        pdfCountIso = {}
-                        for pdf in pdfsPredict:
-                            isoValue = None
-                            if pdf['isoPredicted']:
-                                try:
-                                    isoValue = json.loads(pdf['isoPredicted'])['isoPredicted']
-                                except json.decoder.JSONDecodeError:
-                                    isoValue = None
-                                    print(f"[PDF PREDICT] Error decoding JSON for value: {pdf['isoPredicted']}")
-                                    continue  # If error occured, skip to the next iteration
-                            if isoValue is not None and isoValue.upper() != 'NULL':
-                                if isoValue in pdfCountIso:
-                                    pdfCountIso[isoValue] += 1
-                                else:
-                                    pdfCountIso[isoValue] = 1
-                        if pdfCountIso:
-                            pdfsIso = max(pdfCountIso, key=pdfCountIso.get)
-                except Exception as e:
-                    pdfsIso = None
-                                   
+                        # pdfCountIso = {}
+                        # for pdf in pdfsPredict:
+                            # isoValue = None
+                            # if pdf['isoPredicted']:
+                                # try:
+                                    # isoValue = json.loads(pdf['isoPredicted'])['isoPredicted']
+                                # except json.decoder.JSONDecodeError:
+                                    # isoValue = None
+                                    # print(f"[PDF PREDICT] Error decoding JSON for value: {pdf['isoPredicted']}")
+                                    # continue  # If error occured, skip to the next iteration
+                            # if isoValue is not None and isoValue.upper() != 'NULL':
+                                # if isoValue in pdfCountIso:
+                                    # pdfCountIso[isoValue] += 1
+                                # else:
+                                    # pdfCountIso[isoValue] = 1
+                        # if pdfCountIso:
+                            # pdfsIso = max(pdfCountIso, key=pdfCountIso.get)
+                # except Exception as e:
+                    # pdfsIso = None
+
                 if commitsPredict is not None:
                     commitsIso = commitsPredict['isoDetected']
                 else:
@@ -315,7 +361,7 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
 
                 user['prediction'] = {
                     'name': namePredict,
-                    'pdfs': pdfsPredict,
+                    # 'pdfs': pdfsPredict,
                     'username': usernamePredictJson,
                     'commits': commitsPredict,
                     'location': locationPredict,
@@ -327,16 +373,16 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
                     print('estimatedCountry: ', estimatedCountry, ' ', str(final[estimatedCountry]))
                 else:
                     print('estimatedCountry: N/A')
-                
+
                 print('#################################\n')
-                
+
 
         if(count == 100):
             page += 1
             flag = True
         else:
             flag = False
-        
+
     alert = isAlertNAinRepo(culturalDispersion)
     shannon = shannonIndex(culturalDispersion)
     contributorsObj = {
@@ -357,6 +403,12 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
     print(f'Alert N/A Noise: {alert}')
     print(f'Hofstede Cultural Dispersion: {hofstedeCulturalDispersion}')
     print('#################################\n')
+
+    with open("rpd_info.json", "w") as file:
+        rpd_info["requests_counter"] = day_consecutive_requests
+        rpd_info["first_dr_date"] = first_dr_date.isoformat()
+        json.dump(rpd_info, file)
+
     try:
         # print('contributorsObj:', contributorsObj)
         return contributorsObj
@@ -365,7 +417,7 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
         return jsonify({
             "error": str(e),
             "status": "403"
-        }), "403"   
+        }), "403"
 
 
 
@@ -408,9 +460,9 @@ def estimateCountryContributor(nameIso, usernameIso, pdfsIso, commitsIso, locati
             final[pdfsIso] += WEIGHT_PDFS
         else:
             final[pdfsIso] = WEIGHT_PDFS
-    else:
-        print(f'PDF PREDICTED ({WEIGHT_PDFS}): ', pdfsIso)
-    
+    # else:
+        # print(f'PDF PREDICTED ({WEIGHT_PDFS}): ', pdfsIso)
+
     ### COMMITS ###
     if(commitsIso is not None):
         if(commitsIso in final):
@@ -439,7 +491,7 @@ def estimateCountryContributor(nameIso, usernameIso, pdfsIso, commitsIso, locati
         estimatedCountry =  max(final, key=final.get)
     else:
        estimatedCountry = None
-    
+
     calculateObj = {
         'estimatedCountry': estimatedCountry,
         'final': final
@@ -476,8 +528,8 @@ def shannonIndex(culturalDispersion):
         percent = index / math.log(len(culturalDispersion)) * 100
     else:
         percent = 0
-    
-    
+
+
 
     return {
         'index':index,
