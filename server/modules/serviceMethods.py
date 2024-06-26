@@ -143,6 +143,7 @@ def getRepoInfoGIT(owner, repo, GITHUB_API_TOKEN):
 def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
     page = 1
     flag = True
+    dr_alert = False
     minute_consecutive_requests = 0
     contributors = []
     culturalDispersion = {}
@@ -229,6 +230,7 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
                 # Controllo sul numero di richieste al giorno
                 if day_consecutive_requests == 120:
                     print("Raggiunto il limite di richieste giornaliere.")
+                    dr_alert = True
                     break
 
                 if minute_consecutive_requests > 0:
@@ -392,7 +394,8 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
             'shannonIndex': shannon['index'],
             'percentCultDisp': shannon['percent']
         },
-        'alert': alert
+        'alert': alert,
+        'dr_alert': dr_alert
     }
     hofstedeCulturalDispersion = getHofstedeCulturalDispersion(contributorsObj, "./hofstede.json", owner, repo)
 

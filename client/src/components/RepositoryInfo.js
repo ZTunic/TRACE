@@ -10,7 +10,7 @@ import {
 import { Chart } from 'react-google-charts'
 import moment from 'moment'
 
-function RepositoryInfo({ repo, dispersion, chartData, alert, readme }) {
+function RepositoryInfo({ repo, dispersion, chartData, alert, dr_alert, readme }) {
 	const [chartOption, setChartOption] = useState({})
 
 	useEffect(() => {
@@ -77,6 +77,11 @@ function RepositoryInfo({ repo, dispersion, chartData, alert, readme }) {
 								(with result "N/A") is greater than 30% of the
 								total contributors, the result may contain
 								noise.
+							</Alert>
+						)}
+						{dr_alert && (
+							<Alert severity="warning">
+								Attention! Daily requests limit exceeded.
 							</Alert>
 						)}
 						<Typography sx={{ mt: 3 }}>

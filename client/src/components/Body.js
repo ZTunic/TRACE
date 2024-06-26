@@ -18,6 +18,7 @@ function Body({ loader }) {
 	const [chartData, setChartData] = useState({})
 	const [processing, setProcessing] = useState(false)
 	const [alert, setAlert] = useState(false)
+	const [dr_alert, setDr_alert] = useState(false)
 	const [readme, setReadme] = useState(false)
 	// const [repoName, setRepoName] = useState()
 	// const [repoOwner, setRepoOwner] = useState()
@@ -26,6 +27,7 @@ function Body({ loader }) {
 		setDevelopers([])
 		setError(undefined)
 		setAlert(false)
+		setDr_alert(false)
 		setProcessing(false)
 		setRepo({})
 	}, [])
@@ -132,7 +134,9 @@ function Body({ loader }) {
 							return
 						} else {
 							setAlert(data.alert)
+							setDr_alert(data.dr_alert)
 							console.log(data.alert)
+							console.log(data.dr_alert)
 							setDevelopers(data.contributors)
 							setDispersion(data.culturalDispersion)
 							const chartData = [
@@ -153,6 +157,7 @@ function Body({ loader }) {
 						setDevelopers([])
 						setDispersion({})
 						setAlert(false)
+						setDr_alert(false)
 						setProcessing(false)
 						setError(errorFetched)
 					})
@@ -163,6 +168,7 @@ function Body({ loader }) {
 				setDevelopers([])
 				setDispersion({})
 				setAlert(false)
+				setDr_alert(false)
 				setProcessing(false)
 				setError(errorFetched)
 			})
@@ -225,6 +231,7 @@ function Body({ loader }) {
 						dispersion={dispersion}
 						chartData={chartData}
 						alert={alert}
+						dr_alert={dr_alert}
 						readme={readme}
 					/>
 					<DeveloperList
