@@ -26,8 +26,10 @@ def getHofstedeCulturalDispersion(contributors_data, json_file_path, owner, repo
     # Inizializzo una lista che conterrà i paesi predetti di ogni contributor da utilizzare per l'export in formato CSV.
     contributors_country = []
     for contributor in contributors:
+        country_iso = None
         # Estraggo L'ISO 3166-1 alpha-2 del paese predetto dal Tool TRACE.
-        country_iso = contributor["prediction"]["estimatedCountry"]
+        if contributor.get("prediction"):
+            country_iso = contributor["prediction"]["estimatedCountry"]
         contributors_country.append(country_iso)
         if country_iso is not None and pycountry.countries.get(alpha_2=country_iso) is not None:
             # Utilizzo l'ISO precedentemente ottenuto per ottenere il nome del paese.
@@ -41,6 +43,8 @@ def getHofstedeCulturalDispersion(contributors_data, json_file_path, owner, repo
                         dim_list.append(country_dimensions[dim_name])
 
     # Calcolo la deviazione standard per ogni dimensione.
+    # Aggiungere un controllo sul numero di valori presenti nelle liste da confrontare con il numero totale di contributor
+    # (se per una data lista mancano i valori di almeno il 25% dei contributor totali, allora si esclude la dimensione corrispondente dall'analisi).
     dimensions_std = {}
     for dim_name, dim_list in hofstede_values_lists.items():
         if dim_list:
