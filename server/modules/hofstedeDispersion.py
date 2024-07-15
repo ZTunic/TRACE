@@ -5,13 +5,10 @@ import pycountry
 import numpy as np
 
 
-def getHofstedeCulturalDispersion(contributors_data, json_file_path, owner, repo):
+def getHofstedeCulturalDispersion(contributors_list, json_file_path, owner, repo):
     # Apro il file JSON contenente i paesi e i relativi valori delle 6 dimensioni di Hofstede.
     with open(json_file_path, "r", encoding="utf-8") as file:
         countries_data = json.load(file)
-
-    # Estraggo i contributors.
-    contributors = contributors_data["contributors"]
 
     # Inizializzo un dizionario contenente 6 liste. Ogni lista corrisponde ad una specifica dimensione di Hofstede e sarà utilizzata per memorizzare
     # il valore associato a quella dimensione di ogni contributor.
@@ -25,7 +22,7 @@ def getHofstedeCulturalDispersion(contributors_data, json_file_path, owner, repo
     }
     # Inizializzo una lista che conterrà i paesi predetti di ogni contributor da utilizzare per l'export in formato CSV.
     contributors_country = []
-    for contributor in contributors:
+    for contributor in contributors_list:
         country_iso = None
         # Estraggo L'ISO 3166-1 alpha-2 del paese predetto dal Tool TRACE.
         if contributor.get("prediction"):
@@ -52,7 +49,6 @@ def getHofstedeCulturalDispersion(contributors_data, json_file_path, owner, repo
         else:
             dimensions_std[f"{dim_name}_std"] = None
 
-    contributors_data["culturalDispersion"]["hofstedeDispersion"] = dimensions_std
     # Aggiorno il file CSV con i nuovi dati.
     updateCSV(contributors_country, dimensions_std, owner, repo)
 

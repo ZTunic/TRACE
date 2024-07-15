@@ -25,6 +25,7 @@ server/migrations/
 server/models
 server/vectorizers
 server/__pycache__/
+server/tested_repos.csv
 __pycache__/
 .env
 

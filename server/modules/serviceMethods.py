@@ -387,17 +387,18 @@ def getRepoContributors_Predicts(owner, repo, GITHUB_API_TOKEN, GOOGLE_API_KEY):
 
     alert = isAlertNAinRepo(culturalDispersion)
     shannon = shannonIndex(culturalDispersion)
+    hofstedeCulturalDispersion = getHofstedeCulturalDispersion(contributors, "./hofstede.json", owner, repo)
     contributorsObj = {
         'contributors': contributors,
         'culturalDispersion': {
             'countryDisp': culturalDispersion,
             'shannonIndex': shannon['index'],
-            'percentCultDisp': shannon['percent']
+            'percentCultDisp': shannon['percent'],
+            'hofstedeDispersion': hofstedeCulturalDispersion
         },
         'alert': alert,
         'dr_alert': dr_alert
     }
-    hofstedeCulturalDispersion = getHofstedeCulturalDispersion(contributorsObj, "./hofstede.json", owner, repo)
 
     print('\n#################################')
     print(f'Prediction for Contributors: {culturalDispersion}')
